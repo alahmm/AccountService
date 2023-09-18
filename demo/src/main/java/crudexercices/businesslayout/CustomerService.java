@@ -1,6 +1,6 @@
 package crudexercices.businesslayout;
 
-import crudexercices.presentation.CustomerRepository;
+import crudexercices.persistence.CustomerRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.LocalDate;

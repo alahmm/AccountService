@@ -2,12 +2,26 @@ package com.example.demo.businesslayout;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
+@Entity
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class MyUser {
+    @Id
+    @GeneratedValue
+    private long id;
     @NotEmpty
     private String name;
     @NotNull
@@ -18,43 +32,17 @@ public class MyUser {
     @Pattern(regexp = ".+@acme.com")
     private String email;
 
+
     @NotNull
     @NotEmpty
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     //@JsonIgnore
     private String password;
 
-    public void setName(String name) {
-        this.name = name;
-    }
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+    private String authority;
 
-    public void setlastname(String  lastname) {
-        this. lastname =  lastname;
-    }
 
-    public void setPassword(String password) {
-        this.password = password;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public String getlastname() {
-        return  lastname;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public String getEmail() {
-        return email;
-    }
 
     public MyUser(String name, String  lastname, String password, String email) {
         this.name = name;
@@ -62,7 +50,5 @@ public class MyUser {
         this.password = password;
         this.email = email;
     }
-    public MyUser() {
 
-    }
 }
