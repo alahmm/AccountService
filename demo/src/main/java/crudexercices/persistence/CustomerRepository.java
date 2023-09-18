@@ -1,4 +1,4 @@
-package crudexercices.presentation;
+package crudexercices.persistence;
 
 import crudexercices.businesslayout.Customer;
 import org.springframework.data.repository.CrudRepository;
