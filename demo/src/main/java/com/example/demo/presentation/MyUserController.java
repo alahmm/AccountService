@@ -2,9 +2,7 @@ package com.example.demo.presentation;
 
 import authexercices.businesslayout.AppUser;
 import authexercices.presentation.DemoController;
-import com.example.demo.businesslayout.MyUser;
-import com.example.demo.businesslayout.MyUserService;
-import com.example.demo.businesslayout.UserPassword;
+import com.example.demo.businesslayout.*;
 import com.example.demo.exceptions.CustomBadRequestException;
 import com.example.demo.exceptions.UserExistException;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -29,6 +27,8 @@ public class MyUserController {
             "PasswordForSeptember", "PasswordForOctober", "PasswordForNovember", "PasswordForDecember");
     @Autowired
     MyUserService myUserService;
+    @Autowired
+    private PaymentService paymentService;
     @Autowired
     PasswordEncoder encoder;
     ObjectMapper objectMapper = new ObjectMapper();
@@ -59,14 +59,21 @@ public class MyUserController {
         throw new CustomBadRequestException("User exist!", "/api/auth/signup");
 
     }
-    @GetMapping(path ="/api/empl/payment")
-    public ResponseEntity<String> getRegisterdInfos(@AuthenticationPrincipal UserDetails userDetails1) throws JsonProcessingException {
+    @GetMapping(path = "/api/empl/payment")
+    public ResponseEntity<String> getRegisteredInfos(
+            @AuthenticationPrincipal UserDetails userDetails1,
+            @RequestParam(required = false) String period) throws JsonProcessingException {
+
         String email = userDetails1.getUsername();
         var myUser = myUserService.findObjectByEmail(email);
         if (myUser.isPresent()) {
-
-            return new ResponseEntity<>(objectMapper.writerWithDefaultPrettyPrinter().
-                    writeValueAsString(myUser.get()), HttpStatus.OK);
+            if (period != null) {
+                return new ResponseEntity<>(objectMapper.writerWithDefaultPrettyPrinter()
+                        .writeValueAsString(paymentService.getPaymentByPeriod(email, period)), HttpStatus.OK);
+            } else {
+                return new ResponseEntity<>(objectMapper.writerWithDefaultPrettyPrinter()
+                        .writeValueAsString(paymentService.getPayments(email)), HttpStatus.OK);
+            }
         }
         return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
     }
@@ -98,5 +105,18 @@ public class MyUserController {
         myUserService.saveUser(newUser);
         return new ResponseEntity<>(objectMapper.writerWithDefaultPrettyPrinter().
                 writeValueAsString(userPassword), HttpStatus.OK);
+    }
+    @PostMapping("api/acct/payments")
+    public ResponseEntity<String> AddMoreDataAboutUser(@RequestBody List<PaymentDTO> listOfEmployees) {
+        return paymentService.addSalary(listOfEmployees);
+    }
+    @PutMapping("api/acct/payments")
+    public ResponseEntity<String> UpdateDataAboutUser(@RequestBody PaymentDTO employee) {
+        return paymentService.updatePayment(employee);
+    }
+    @DeleteMapping("api/delete")
+    public ResponseEntity<String> deleter() {
+        myUserService.delete();
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 }
