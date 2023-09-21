@@ -1,5 +1,6 @@
 package com.example.demo.businesslayout;
 
+import com.example.demo.exceptions.CustomAccessDeniedHandler;
 import com.example.demo.userdetails.AppUserDetailsServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -36,16 +37,27 @@ public class SecurityConfig {
         auth.userDetailsService(appUserDetailsService).passwordEncoder(passwordEncoder());
     }
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http, HandlerMappingIntrospector introspector) throws Exception {
-        MvcRequestMatcher.Builder mvcMatcherBuilder = new MvcRequestMatcher.Builder(introspector);
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
-                .authorizeHttpRequests(requests -> requests
-                .requestMatchers(new AntPathRequestMatcher(("/api/empl/payment"))).authenticated()
-                .anyRequest().permitAll()
+                .authorizeHttpRequests(authorize -> authorize
+                        .requestMatchers(new AntPathRequestMatcher("/api/auth/signup")).permitAll() // Allow all users for this endpoint
+                        .requestMatchers(new AntPathRequestMatcher("/api/delete")).permitAll() // Allow all users for this endpoint
+                        .requestMatchers(new AntPathRequestMatcher("/api/auth/changepass")).hasAnyRole("USER", "ACCOUNTANT", "ADMINISTRATOR")
+                        .requestMatchers(new AntPathRequestMatcher("/api/empl/payment")).hasAnyRole("ACCOUNTANT", "USER")
+                        .requestMatchers(new AntPathRequestMatcher("/api/acct/payments")).hasRole("ACCOUNTANT")
+                        .requestMatchers(new AntPathRequestMatcher("/api/admin/user/**")).hasRole("ADMINISTRATOR")
+                        // .requestMatchers(new AntPathRequestMatcher("/api/admin/user/role")).hasAnyRole("ADMINISTRATOR")
+
+                        .anyRequest().permitAll() // Require authentication for this endpoint
                 )
                 .httpBasic(Customizer.withDefaults())
-                .csrf(AbstractHttpConfigurer::disable)  // for POST requests via Postman
+                .csrf(csrfConfigurer -> csrfConfigurer.disable())
+                /*                .exceptionHandling()
+                .accessDeniedHandler(new CustomAccessDeniedHandler()) // Set the custom access denied handler
+                .and()
+                 */
                 .build();
+
     }
 
     @Bean

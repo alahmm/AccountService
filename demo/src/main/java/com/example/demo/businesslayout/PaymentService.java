@@ -130,4 +130,10 @@ public class PaymentService {
         employeePaymentDTO.setLastname(user.get().getLastname());
         return employeePaymentDTO;
     }
+    public void deletePayment(Payment payment) {
+        paymentRepository.delete(payment);
+    }
+    public List<Payment> getAllPaymentForAUser(MyUser user) {
+        return paymentRepository.findByUserOrderByPeriodDesc(user);
+    }
 }

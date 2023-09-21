@@ -30,9 +30,21 @@ public class MyUserService {
 
         return myUserRepository.findAll();
     }
-    public void delete() {
+    @Transactional
+    public void delete(MyUser myUser) {
+
+        myUserRepository.delete(myUser);
+    }
+    @Transactional
+    public void deleteAllUsers() {
         myUserRepository.deleteAll();
 
     }
+    public List<MyUser> getAllUsers() {
+        return myUserRepository.findAllByOrderByIdAsc();
+    }
 
+    public long getHowManyUsers() {
+        return myUserRepository.count();
+    }
 }

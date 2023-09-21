@@ -9,6 +9,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class AppUserAdapter implements UserDetails {
     private final MyUser user;
@@ -19,7 +20,11 @@ public class AppUserAdapter implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return Collections.emptyList();
+
+        return user.getRoles()
+                .stream()
+                .map(role -> new SimpleGrantedAuthority(role))
+                .collect(Collectors.toList());
     }
 
     @Override

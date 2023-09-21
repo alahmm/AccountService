@@ -16,6 +16,13 @@ public class CustomBadRequestException extends RuntimeException {
         this.message = message; // Custom message
         this.path = path;       // Custom path
     }
+    public CustomBadRequestException(String message, String path, String error, int status) {
+        this.timestamp = LocalDateTime.now().toString();
+        this.status = status;
+        this.error = error;
+        this.message = message; // Custom message
+        this.path = path;       // Custom path
+    }
 
     public String getTimestamp() {
         return timestamp;
