@@ -14,6 +14,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Entity
 @Data
 @NoArgsConstructor
@@ -39,16 +41,6 @@ public class MyUser {
     //@JsonIgnore
     private String password;
 
-    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
-    private String authority;
-
-
-
-    public MyUser(String name, String  lastname, String password, String email) {
-        this.name = name;
-        this. lastname =  lastname;
-        this.password = password;
-        this.email = email;
-    }
+    private List<String> roles;
 
 }

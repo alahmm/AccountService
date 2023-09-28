@@ -17,7 +17,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Validated
 @RestController
@@ -25,6 +27,7 @@ public class MyUserController {
     List<String> breachedPasswords = List.of("PasswordForJanuary", "PasswordForFebruary", "PasswordForMarch", "PasswordForApril",
             "PasswordForMay", "PasswordForJune", "PasswordForJuly", "PasswordForAugust",
             "PasswordForSeptember", "PasswordForOctober", "PasswordForNovember", "PasswordForDecember");
+    List<String> roles = List.of("ADMINISTRATOR", "USER", "ACCOUNTANT");
     @Autowired
     MyUserService myUserService;
     @Autowired
@@ -43,7 +46,11 @@ public class MyUserController {
                 throw new CustomBadRequestException("The password length must be at least 12 chars!", "/api/auth/signup");
             }else {
                 MyUser myUser1 = new MyUser();
-
+                if (myUserService.getHowManyUsers() == 0) {
+                    myUser1.setRoles(List.of("ROLE_ADMINISTRATOR"));
+                } else {
+                    myUser1.setRoles(List.of("ROLE_USER"));
+                }
                 myUser1.setName(myUser.getName());
                 myUser1.setLastname(myUser.getLastname());
                 myUser1.setEmail(myUser.getEmail());
@@ -114,9 +121,96 @@ public class MyUserController {
     public ResponseEntity<String> UpdateDataAboutUser(@RequestBody PaymentDTO employee) {
         return paymentService.updatePayment(employee);
     }
-    @DeleteMapping("api/delete")
-    public ResponseEntity<String> deleter() {
-        myUserService.delete();
-        return new ResponseEntity<>(HttpStatus.OK);
+    @PutMapping("/api/admin/user/role")
+    public ResponseEntity<String> updateRoles(@RequestBody UserRoleRequest userRoleRequest) throws JsonProcessingException {
+        String email = userRoleRequest.getUser();
+        String roleToChange = userRoleRequest.getRole();
+        String operation = userRoleRequest.getOperation();
+        var user = myUserService.findObjectByEmail(email).orElse(null);
+        if (user == null) {
+            throw new CustomBadRequestException("User not found!", "/api/admin/user/role", "Not Found", 404);
+        }
+        List<String> listOfRoles= user.getRoles();
+        if ("REMOVE".equals(operation)) {
+            // Remove the role
+            if (roleToChange.equals("ADMINISTRATOR")) {
+                throw new CustomBadRequestException("Can't remove ADMINISTRATOR role!", "/api/admin/user/role");
+            }
+            if(!listOfRoles.contains("ROLE_" + roleToChange)) {
+                throw new CustomBadRequestException("The user does not have a role!", "/api/admin/user/role");
+            }
+            if (listOfRoles.size() == 1) {
+                throw new CustomBadRequestException("The user must have at least one role!", "/api/admin/user/role");
+            }
+            listOfRoles.remove("ROLE_" + roleToChange);
+            user.setRoles(listOfRoles);
+
+        } else if ("GRANT".equals(operation)) {
+
+            if (!roles.contains(roleToChange)) {
+                throw new CustomBadRequestException("Role not found!", "/api/admin/user/role", "Not Found", 404);
+                // Grant the role
+            }
+            if ((listOfRoles.contains("ROLE_USER") || listOfRoles.contains("ROLE_ACCOUNTANT")) && roleToChange.equals("ADMINISTRATOR")) {
+                throw new CustomBadRequestException("The user cannot combine administrative and business roles!", "/api/admin/user/role");
+            }
+            if (listOfRoles.contains("ROLE_ADMINISTRATOR") && (roleToChange.equals("ACCOUNTANT") || roleToChange.equals("USER"))) {
+                throw new CustomBadRequestException("The user cannot combine administrative and business roles!", "/api/admin/user/role");
+            }
+            listOfRoles.add("ROLE_" + roleToChange);
+
+        } else {
+            return new ResponseEntity<>("Invalid operation!", HttpStatus.BAD_REQUEST);
+        }
+        // Sort the roles in ascending order
+        Collections.sort(listOfRoles);
+        user.setRoles(listOfRoles);
+        myUserService.saveUser(user);
+        return new ResponseEntity<>(objectMapper.writerWithDefaultPrettyPrinter().
+                writeValueAsString(user), HttpStatus.OK);
+    }
+    @DeleteMapping("/api/admin/user/{email}")
+    public ResponseEntity<String> deleteUser(@PathVariable String email) throws JsonProcessingException {
+        var user = myUserService.findObjectByEmail(email).orElse(null);
+        String path = String.format("/api/admin/user/%s", email);
+        if (user == null) {
+            throw new CustomBadRequestException("User not found!",path, "Not Found", 404);
+        }
+        if (user.getRoles().contains("ROLE_ADMINISTRATOR")) {
+            throw new CustomBadRequestException("Can't remove ADMINISTRATOR role!",path);
+        }
+        List<Payment> paymentsToDelete = paymentService.getAllPaymentForAUser(user);
+        for (Payment payment : paymentsToDelete) {
+            paymentService.deletePayment(payment);
+        }
+        myUserService.delete(user);
+        UserDeleteResponse userDeleteResponse = new UserDeleteResponse();
+        userDeleteResponse.setUser(email);
+        userDeleteResponse.setStatus("Deleted successfully!");
+        return new ResponseEntity<>(objectMapper.writerWithDefaultPrettyPrinter().
+                writeValueAsString(userDeleteResponse), HttpStatus.OK);
+    }
+    @GetMapping("/api/admin/user/")
+    public ResponseEntity<List<UserInfoDTO>> getAllUsers() {
+        // Retrieve user information from the repository and sort by ID
+        List<MyUser> users = myUserService.getAllUsers();
+
+        // Map the User entities to a DTO (Data Transfer Object) in the desired JSON format
+        List<UserInfoDTO> userDTOs = users.stream()
+                .map(user -> new UserInfoDTO(user.getId(), user.getName(), user.getLastname(), user.getEmail(), user.getRoles()))
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(userDTOs);
+    }
+    @DeleteMapping("/api/delete")
+    public void deleteAllUsers() {
+        List<MyUser> users = myUserService.getAllUsers();
+        for (MyUser user : users) {
+            List<Payment> payments = paymentService.getAllPaymentForAUser(user);
+            for (Payment payment : payments) {
+                paymentService.deletePayment(payment);
+            }
+            myUserService.delete(user);
+        }
     }
 }
